@@ -1,0 +1,70 @@
+name: Mod Release (reusable)
+
+on:
+  workflow_call:
+    inputs:
+      mod_id:
+        required: true
+        type: string
+      tag_name:
+        required: true
+        type: string
+      published_file_id:
+        required: false
+        type: string
+        default: ''
+      publish_steam:
+        required: false
+        type: boolean
+        default: false
+      prerelease:
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Zip mod folder
+        run: |
+          mkdir -p release_build
+          zip -r "release_build/${{ inputs.mod_id }}.zip" Contents/
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.tag_name }}
+          files: release_build/${{ inputs.mod_id }}.zip
+          generate_release_notes: false
+          prerelease: ${{ inputs.prerelease }}
+
+      - name: Verify Steam Workshop item exists
+        if: ${{ inputs.publish_steam == true }}
+        run: |
+          id="${{ inputs.published_file_id }}"
+          if ! [[ "$id" =~ ^[0-9]+$ ]]; then
+            echo "::error::published_file_id '$id' is not a numeric Workshop ID (placeholder never replaced?)"
+            exit 1
+          fi
+          result=$(curl -s -X POST "https://api.steampowered.com/ISteamRemoteStorage/GetPublishedFileDetails/v1/" \
+            -d "itemcount=1&publishedfileids[0]=$id" \
+            | jq -r '.response.publishedfiledetails[0].result')
+          if [ "$result" != "1" ]; then
+            echo "::error::Workshop item $id does not exist (Steam API result=$result). First publish is always manual via Steam's own tools."
+            exit 1
+          fi
+          echo "Workshop item $id confirmed to exist."
+
+      - name: Publish to Steam Workshop
+        if: ${{ inputs.publish_steam == true }}
+        uses: m00nl1ght-dev/steam-workshop-deploy@v4
+        with:
+          username: ${{ secrets.STEAM_USERNAME }}
+          configVdf: ${{ secrets.STEAM_CONFIG_VDF }}
+          appId: '108600'
+          publishedFileId: ${{ inputs.published_file_id }}
+          path: '.'
+          changeNote: 'Automatically updated via GitHub Actions (${{ inputs.tag_name }}, build ${{ github.run_number }})'
