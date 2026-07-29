@@ -21,6 +21,10 @@ on:
         required: false
         type: boolean
         default: false
+      preview_file:
+        required: false
+        type: string
+        default: 'preview.png'
 
 jobs:
   build-and-publish:
@@ -76,11 +80,12 @@ jobs:
 
       - name: Publish to Steam Workshop
         if: ${{ inputs.publish_steam == true }}
-        uses: m00nl1ght-dev/steam-workshop-deploy@v4
+        uses: lucashort7/steam-workshop-deploy@v1
         with:
           username: ${{ secrets.STEAM_USERNAME }}
           configVdf: ${{ secrets.STEAM_CONFIG_VDF }}
           appId: '108600'
           publishedFileId: ${{ inputs.published_file_id }}
           path: '.'
+          previewFile: ${{ inputs.preview_file }}
           changeNote: 'Automatically updated via GitHub Actions (${{ inputs.tag_name }}, build ${{ github.run_number }})'
