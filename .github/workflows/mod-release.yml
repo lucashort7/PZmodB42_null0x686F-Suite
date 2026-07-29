@@ -80,7 +80,7 @@ jobs:
 
       - name: Publish to Steam Workshop
         if: ${{ inputs.publish_steam == true }}
-        uses: lucashort7/steam-workshop-deploy@v1
+        uses: lucashort7/steam-workshop-deploy@v2
         with:
           username: ${{ secrets.STEAM_USERNAME }}
           configVdf: ${{ secrets.STEAM_CONFIG_VDF }}
