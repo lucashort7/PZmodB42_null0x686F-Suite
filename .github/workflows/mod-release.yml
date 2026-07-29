@@ -28,6 +28,22 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Sync mod.info version to release tag
+        run: |
+          version="${{ inputs.tag_name }}"
+          version="${version#v}"
+          mod_info="Contents/mods/${{ inputs.mod_id }}/common/mod.info"
+          # PZ's mod.info parser does not tolerate a trailing marker comment
+          # after modversion= (confirmed in-game 2026-07-28), so release-please
+          # never touches this file directly — this is the only place the
+          # shipped modversion gets synced to the real release version.
+          if [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+ ]] && [ -f "$mod_info" ]; then
+            sed -i "s/^modversion=.*/modversion=$version/" "$mod_info"
+            echo "Set modversion=$version in $mod_info"
+          else
+            echo "Skipping modversion sync (tag '$version' isn't plain semver, or $mod_info not found)"
+          fi
+
       - name: Zip mod folder
         run: |
           mkdir -p release_build
