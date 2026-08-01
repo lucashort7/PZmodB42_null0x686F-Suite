@@ -23,6 +23,31 @@ Fully automated via [release-please](https://github.com/googleapis/release-pleas
 - **`main`** — stable, protected (`required_approving_review_count: 0`, `enforce_admins: true`, no bypass) once a repo has shipped its first Workshop item. Currently on: CoreLib, ContextCleaner. QoL/CombatText unprotected until they publish.
 - **`dev`** — integration branch, unprotected. Every push builds a pre-release under the floating `dev-latest` tag (see Pipeline, dev path) so in-progress work is testable without cutting a real version.
 - Floating tags `latest`/`dev-latest` are moved via `git tag -f` + `git push --force` inside CI, not by hand.
+- **`feature/<Story-ID>/<short-desc>`** (Story ID optional but recommended, e.g. `feature/AGGY-0011/module-refactor`; falls back to `feature/<short-desc>` with no Story yet) — new work, branches from `dev`.
+- **`chore/<short-desc>`** — maintenance, no feature logic, branches from `dev`.
+- **`bugfix/<Story-ID>/<short-desc>`** — non-critical bug found during development, branches from `dev`, follows the normal test-then-promote cycle like `feature/`.
+- **`hotfix/<short-desc>`** — critical bug in an already-published mod (currently: CoreLib, ContextCleaner). Always branches from `main` directly, bypassing whatever unfinished work sits in `dev`, since `dev`→`main` promotion could otherwise drag along unrelated in-progress features. After merging to `main`, merge (or cherry-pick) the same fix into `dev` so it isn't lost there.
+- Never encode the Epic ID (`PZHZ-0X`) in a branch name — the repo itself already identifies the epic (e.g. `corelib` = PZHZ-01), so it adds no information. Use the Story ID (`AGGY-XXXX`) instead when one exists.
+
+## Commit conventions
+
+[Conventional Commits](https://www.conventionalcommits.org/), full type list (not just the 4 used so far):
+
+| Type | Use for |
+|---|---|
+| `feat` | new feature or capability |
+| `fix` | bug fix |
+| `docs` | documentation only |
+| `style` | formatting, no logic change |
+| `refactor` | code change that's neither a fix nor a feature |
+| `perf` | performance improvement |
+| `test` | adding or correcting tests |
+| `build` | build system or dependency changes |
+| `ci` | CI/CD workflow changes only (no mod code) |
+| `chore` | maintenance, no production code change |
+| `revert` | reverts a previous commit |
+
+Scope (`type(scope): ...`) is optional. Existing commits scope by mod name (e.g. `chore(corelib):`) but that's redundant since each mod has its own repo — only use a scope in this hub repo (`suite`) if a commit needs to disambiguate between its scripts/docs/workflows.
 
 ## Pipeline — what fires on what ref
 
