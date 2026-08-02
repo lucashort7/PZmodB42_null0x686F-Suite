@@ -1,0 +1,68 @@
+name: Lua Lint (reusable)
+
+# Shared luacheck gate for every null0x686F mod repo.
+#
+# Scope is deliberately asymmetric, and the reason matters:
+#
+#   pull_request -> lints ONLY the .lua files the PR touched, and BLOCKS.
+#   push         -> lints the whole tree, and only REPORTS.
+#
+# The four repos carry 51 pre-existing warnings (measured 2026-08-01, see
+# ADR-0005). Blocking on the full tree would make every PR red from day one
+# and the gate would be switched off within a week. Blocking on changed
+# files only means new code must be clean while the existing debt stays
+# visible without holding anyone hostage.
+#
+# Once that debt is cleared, the pull_request step can be widened to the
+# full tree and this comment deleted.
+
+on:
+  workflow_call:
+    inputs:
+      lua_root:
+        description: 'Path to the mod''s media/lua directory'
+        required: true
+        type: string
+
+jobs:
+  luacheck:
+    name: luacheck
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # full history: the PR diff needs the base branch present
+          fetch-depth: 0
+
+      - name: Install luacheck
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq lua5.1 liblua5.1-0-dev luarocks
+          sudo luarocks install luacheck
+          luacheck --version
+
+      - name: Lint changed files (blocking)
+        if: github.event_name == 'pull_request'
+        run: |
+          BASE="origin/${{ github.base_ref }}"
+          git fetch origin "${{ github.base_ref }}" --quiet
+
+          CHANGED=$(git diff --name-only --diff-filter=d "$BASE"...HEAD -- '*.lua')
+
+          if [ -z "$CHANGED" ]; then
+            echo "No .lua files changed in this PR."
+            exit 0
+          fi
+
+          echo "Linting files touched by this PR:"
+          echo "$CHANGED" | sed 's/^/  /'
+          echo
+
+          # shellcheck disable=SC2086
+          luacheck --codes $CHANGED
+
+      - name: Lint whole tree (report only)
+        if: github.event_name != 'pull_request'
+        continue-on-error: true
+        run: luacheck --codes "${{ inputs.lua_root }}"
