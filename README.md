@@ -37,6 +37,6 @@ jobs:
     secrets: inherit
 ```
 
-It zips `Contents/`, attaches it to a GitHub Release, verifies the target Steam Workshop item actually exists (via the unauthenticated `ISteamRemoteStorage/GetPublishedFileDetails` endpoint — a plain HTTP status check on the Workshop page is not reliable, it always returns 200 even for nonexistent items), then publishes via `m00nl1ght-dev/steam-workshop-deploy@v4`.
+It zips `Contents/`, attaches it to a GitHub Release, verifies the target Steam Workshop item actually exists (via the unauthenticated `ISteamRemoteStorage/GetPublishedFileDetails` endpoint — a plain HTTP status check on the Workshop page is not reliable, it always returns 200 even for nonexistent items), then publishes via `lucashort7/steam-workshop-deploy@v3` — our own fork, because the upstream action supports neither `previewFile` nor `visibility`/`title`/`description`. Don't "fix" this back to upstream.
 
-**Note:** as of now, none of the mod repos call this workflow yet — it's being stood up and proven in isolation first, precisely so any adjustments needed don't require touching every mod repo at once.
+**Status (verified 2026-08-03):** all four mod repos call this workflow, from both `release.yml` and `dev-release.yml`, pinned at `@main`.
